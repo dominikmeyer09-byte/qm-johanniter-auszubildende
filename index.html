@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QM Johanniter Auszubildende | QM-Dokumentation</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#f5f7fa;--card:#fff;--text:#172033;--muted:#667085;--line:#e1e5eb;--primary:#00509e;--primary2:#003f7d;--red:#e30613;--danger:#b42318;--ok:#087f5b;--shadow:0 8px 28px rgba(16,24,40,.07)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:none!important}
+.top{background:linear-gradient(90deg,#00509e 0%,#00509e 70%,#e30613 100%);color:#fff;padding:14px 18px;position:sticky;top:0;z-index:10}.topin{max-width:1180px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:12px}.brand{font-weight:900;letter-spacing:.2px}.small{font-size:13px;color:#d6e2ff}
+.wrap{max-width:1180px;margin:0 auto;padding:20px}.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow)}.span12{grid-column:span 12}.span8{grid-column:span 8}.span6{grid-column:span 6}.span4{grid-column:span 4}
+h1,h2,h3{margin:0 0 12px}h1{font-size:26px}h2{font-size:20px}h3{font-size:16px}.muted{color:var(--muted)}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.between{justify-content:space-between}
+.btn{border:0;border-radius:10px;padding:10px 14px;font-weight:700;background:var(--primary);color:#fff}.btn:hover{background:var(--primary2)}.btn.secondary{background:#edf3ff;color:#174ea6}.btn.ghost{background:#fff;color:var(--text);border:1px solid var(--line)}.btn.danger{background:#fff0f0;color:var(--danger);border:1px solid #ffd0d0}.accent{color:var(--red)}.btn.small{padding:7px 10px;font-size:13px}
+label{display:block;font-weight:700;font-size:13px;margin-bottom:6px}.field{margin-bottom:14px}input,select,textarea{width:100%;padding:10px 11px;border:1px solid #cfd6e2;border-radius:10px;background:#fff;color:var(--text)}textarea{min-height:90px;resize:vertical}
+.auth{min-height:100vh;display:grid;place-items:center;padding:20px}.authbox{max-width:470px;width:100%}.logo{font-size:28px;font-weight:900;color:#00509e;margin-bottom:8px}.tabs{display:flex;border-bottom:1px solid var(--line);margin-bottom:18px}.tab{flex:1;padding:10px;background:none;border:0;font-weight:800;color:var(--muted);border-bottom:3px solid transparent}.tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+.alert{padding:11px 13px;border-radius:10px;background:#eef5ff;color:#174ea6;margin-bottom:14px}.alert.err{background:#fff0f0;color:#9f1d1d}.alert.ok{background:#eaf8f2;color:#087f5b}
+nav{display:flex;gap:8px;overflow:auto;margin-bottom:18px}.navbtn{white-space:nowrap;border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 12px;font-weight:700;color:#475467}.navbtn.active{background:#00509e;color:#fff;border-color:#00509e}
+.stat{padding:16px;border:1px solid var(--line);border-radius:14px;background:#fbfcfe}.stat b{font-size:25px;display:block}.stat span{font-size:12px;color:var(--muted)}
+.question{padding:14px;border:1px solid var(--line);border-radius:13px;margin-bottom:10px}.question .qtitle{font-weight:800;margin-bottom:9px}.choices{display:flex;gap:8px;flex-wrap:wrap}.choice{padding:9px 13px;border:1px solid #ccd4e0;border-radius:10px;background:#fff}.choice.selected{background:#eaf2ff;border-color:#155eef;color:#155eef;font-weight:800}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:#475467;font-size:12px;text-transform:uppercase;letter-spacing:.03em}
+.tablewrap{overflow:auto}.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#edf3ff;color:#174ea6;font-size:12px;font-weight:800}.pill.off{background:#f2f4f7;color:#667085}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.progress{height:8px;background:#e8edf4;border-radius:999px;overflow:hidden}.progress>div{height:100%;background:#155eef}.modal{position:fixed;inset:0;background:rgba(16,24,40,.55);display:grid;place-items:center;padding:16px;z-index:50}.modalbox{background:#fff;border-radius:18px;max-width:760px;width:100%;max-height:88vh;overflow:auto;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+\n.brandmini{display:flex;align-items:center;gap:9px;font-weight:900;color:#003f7d;margin-right:auto}.brandmark{width:30px;height:30px;border-radius:8px;background:#e30613;color:#fff;display:grid;place-items:center;font-weight:900}.navtabs{display:flex;gap:6px;flex-wrap:wrap}.qstatcard{border:1px solid var(--line);border-radius:14px;padding:14px;background:#fff}.stackbar{height:14px;border-radius:999px;overflow:hidden;background:#edf0f5;display:flex}.stackbar span{height:100%;display:block}.stackbar .yes{background:#155eef}.stackbar .partial{background:#d97706}.stackbar .no{background:#c62828}.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:#667085}.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px}.answerText{white-space:pre-wrap;line-height:1.5}
+footer{padding:30px 0;color:#98a2b3;font-size:12px}
+@media(max-width:800px){.span8,.span6,.span4{grid-column:span 12}.kpi{grid-template-columns:repeat(2,1fr)}.wrap{padding:14px}.card{padding:15px}.top{padding:12px 14px}}
+@media print{.top,nav,.no-print{display:none!important}.wrap{max-width:none;padding:0}.card{box-shadow:none;break-inside:avoid}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const SUPABASE_URL = "https://sorljyxgnzcncasxfuyo.supabase.co";
+const SUPABASE_KEY = "sb_publishable_upSLewUf2l1w4rcWhk7llg_Ebp4JJb5";
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const app = document.getElementById("app");
+let state = {session:null,user:null,profile:null,questions:[],deployments:[],answers:[],profiles:[],invites:[],tab:"home",loading:false};
+
+const esc = s => String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+const fmtDate = d => d ? new Date(d+"T00:00:00").toLocaleDateString("de-DE") : "";
+const fmtTime = t => t ? String(t).slice(0,5) : "";
+function msg(text, type=""){return `<div class="alert ${type}">${esc(text)}</div>`}
+function setBusy(b){state.loading=b}
+function download(name, content, mime="text/plain"){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([content],{type:mime}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
+function csvCell(v){return `"${String(v??"").replaceAll('"','""')}"`}
+
+async function boot(){
+  const {data:{session}}=await sb.auth.getSession();
+  state.session=session; state.user=session?.user||null;
+  if(state.user) await loadData();
+  render();
+  sb.auth.onAuthStateChange(async (_e,s)=>{state.session=s;state.user=s?.user||null;if(state.user) await loadData();render()});
+}
+async function loadData(){
+  const p=await sb.from("profiles").select("*").eq("id",state.user.id).maybeSingle();
+  state.profile=p.data;
+  const q=await sb.from("questions").select("*").order("id");
+  state.questions=q.data||[];
+  const d=await sb.from("deployments").select("*").order("date",{ascending:false}).order("id",{ascending:false});
+  state.deployments=d.data||[];
+  const a=await sb.from("answers").select("*");
+  state.answers=a.data||[];
+  if(state.profile?.role==="admin"){
+    const pr=await sb.from("profiles").select("*").order("year").order("full_name");
+    state.profiles=pr.data||[];
+    const inv=await sb.from("trainee_invites").select("*").order("created_at",{ascending:false});
+    state.invites=inv.data||[];
+  } else {state.profiles=[];state.invites=[]}
+}
+function authView(){
+return `<div class="auth"><div class="authbox">
+<div class="logo">QM Johanniter Auszubildende</div><div class="muted" style="margin-bottom:18px">Digitale Einsatz- und QM-Dokumentation für die NotSan-Ausbildung.</div>
+<div class="card">
+<div class="tabs"><button class="tab active" data-auth="login">Anmelden</button><button class="tab" data-auth="signup">Konto erstellen</button></div>
+<div id="auth-login"><form id="loginForm">
+<div class="field"><label>E-Mail</label><input id="loginEmail" type="email" required></div>
+<div class="field"><label>Passwort</label><input id="loginPw" type="password" required></div>
+<button class="btn" style="width:100%">Anmelden</button></form></div>
+<div id="auth-signup" class="hidden"><form id="signupForm">
+<div class="field"><label>Name</label><input id="suName" required></div>
+<div class="field"><label>E-Mail</label><input id="suEmail" type="email" required></div>
+<div class="field"><label>Lehrjahr</label><select id="suYear"><option value="1">1. Lehrjahr</option><option value="2">2. Lehrjahr</option><option value="3">3. Lehrjahr</option></select></div>
+<div class="field"><label>Passwort (mind. 6 Zeichen)</label><input id="suPw" type="password" minlength="6" required></div>
+<button class="btn" style="width:100%">Konto erstellen</button>
+</form><div class="muted" style="font-size:12px;margin-top:10px">Wenn dein Supabase-Projekt eine E-Mail-Bestätigung verlangt, musst du diese zuerst bestätigen.</div></div>
+<div id="authMsg" style="margin-top:14px"></div>
+</div></div></div>`;
+}
+function shell(content){
+return `<div class="top"><div class="topin"><div><div class="brand">QM Johanniter Auszubildende</div><div class="small">${esc(state.profile?.full_name||state.user?.email||"")}</div></div><button class="btn secondary small" id="logout">Abmelden</button></div></div>
+<div class="wrap">${content}<footer>QM Johanniter Auszubildende · Keine Patientennamen oder anderen identifizierenden Gesundheitsdaten eintragen.</footer></div>`;
+}
+function nav(){
+const tabs=state.profile?.role==="admin"?["home","einsatz","statistik","azubis","fragen"]:["home","einsatz","statistik"];
+const labels={home:"Dashboard",einsatz:"Neuer Einsatz",statistik:"Statistik",azubis:"Azubis",fragen:"QM-Fragen"};
+return `<nav><div class="brandmini"><span class="brandmark">J</span><span>QM Johanniter Auszubildende</span></div><div class="navtabs">${tabs.map(t=>`<button class="navbtn ${state.tab===t?"active":""}" data-tab="${t}">${labels[t]}</button>`).join("")}</div></nav>`;
+}
+function dashboard(){
+const mine=state.deployments.length, answered=state.answers.length;
+const activeQ=state.questions.filter(q=>q.active).length;
+const target=50, pct=Math.min(100,Math.round(mine/target*100));
+let setup="";
+if(state.profile?.role==="azubi") setup=`<div class="card span12"><h3>Ersteinrichtung</h3><p class="muted">Wenn noch kein Admin eingerichtet wurde, kannst du dein Konto einmalig als ersten Admin freischalten.</p><button class="btn secondary" id="claimAdmin">Als ersten Admin freischalten</button></div>`;
+return `${nav()}<div class="grid">
+<div class="card span12"><div class="row between"><div><h1>Hallo ${esc((state.profile?.full_name||"").split(" ")[0])} 👋</h1><div class="muted">${state.profile?.role==="admin"?"Administrator / Praxisanleiter":"Azubi · "+state.profile?.year+". Lehrjahr"}</div></div></div></div>
+${setup}
+<div class="card span12"><div class="kpi"><div class="stat"><b>${mine}</b><span>Einsätze dokumentiert</span></div><div class="stat"><b>${activeQ}</b><span>aktive QM-Fragen</span></div><div class="stat"><b>${answered}</b><span>Antworten gespeichert</span></div><div class="stat"><b>${pct}%</b><span>bis 50 Einsätze (freiwilliges Ziel)</span></div></div><div style="margin-top:14px"><div class="progress"><div style="width:${pct}%"></div></div></div></div>
+<div class="card span8"><h2>Letzte Einsätze</h2>${deploymentTable(state.deployments.slice(0,8))}</div>
+<div class="card span4"><h2>Schnellstart</h2><button class="btn" style="width:100%;margin-bottom:8px" data-tab="einsatz">+ Einsatz dokumentieren</button><button class="btn secondary" style="width:100%" data-tab="statistik">Statistik ansehen</button></div>
+</div>`;
+}
+function deploymentTable(rows){
+if(!rows.length)return `<div class="muted">Noch keine Einsätze.</div>`;
+return `<div class="tablewrap"><table><thead><tr><th>Datum</th><th>Stichwort</th><th>Alarmzeit</th><th class="no-print">Aktion</th></tr></thead><tbody>${rows.map(d=>`<tr><td>${fmtDate(d.date)}</td><td>${esc(d.keyword)}</td><td>${fmtTime(d.alarm_time)}</td><td class="no-print"><div class="row"><button class="btn small secondary viewDeployment" data-id="${d.id}">Antworten</button><button class="btn small danger deleteDeployment" data-id="${d.id}">Löschen</button></div></td></tr>`).join("")}</tbody></table></div>`;
+}
+function showDeployment(id){
+ const d=state.deployments.find(x=>String(x.id)===String(id));
+ if(!d)return;
+ const p=state.profiles.find(x=>x.id===d.user_id)||state.profile;
+ const aa=state.answers.filter(a=>String(a.deployment_id)===String(id));
+ const body=aa.length?aa.map((a,i)=>`<div class="question"><div class="qtitle">${i+1}. ${esc(a.question_text_snapshot||state.questions.find(q=>q.id===a.question_id)?.text||"QM-Frage")}</div><div class="answerText">${a.value?`<b>${esc(a.value)}</b>`:`<span class="muted">Keine Antwort eingetragen</span>`}</div></div>`).join(""):`<div class="muted">Für diesen Einsatz sind keine Antworten gespeichert.</div>`;
+ const modal=document.createElement("div"); modal.className="modal"; modal.id="deploymentModal";
+ modal.innerHTML=`<div class="modalbox"><div class="row between"><div><h2>Einsatzdetails</h2><div class="muted">${fmtDate(d.date)} · ${fmtTime(d.alarm_time)} · ${esc(d.keyword)}</div>${state.profile?.role==="admin"?`<div class="muted">Azubi: ${esc(p?.full_name||"")} · ${p?.year||""}. Lehrjahr</div>`:""}</div><button class="btn ghost" id="closeDeployment">Schließen</button></div><div style="margin-top:16px">${body}</div></div>`;
+ document.body.appendChild(modal);
+ document.getElementById("closeDeployment").onclick=()=>modal.remove();
+ modal.onclick=e=>{if(e.target===modal)modal.remove()};
+}
+function einsatz(){
+const qs=state.questions.filter(q=>q.active);
+return `${nav()}<div class="grid"><div class="card span8"><h1>Neuen Einsatz dokumentieren</h1><p class="muted">Datum wird automatisch gesetzt. Die QM-Fragen können vom Admin jederzeit ergänzt werden.</p>
+<form id="deploymentForm"><div class="grid">
+<div class="field span6"><label>Datum</label><input type="date" id="depDate" value="${new Date().toISOString().slice(0,10)}" required></div>
+<div class="field span6"><label>Alarmzeit</label><input type="time" id="depTime" required></div>
+<div class="field span12"><label>Einsatzstichwort</label><input id="depKeyword" placeholder="z. B. Dyspnoe, Sturz, ACS" required></div>
+</div>
+<h2 style="margin-top:20px">QM-Fragen</h2>${qs.length?qs.map((q,i)=>questionInput(q,i)).join(""):`<div class="muted">Es sind noch keine aktiven Fragen vorhanden.</div>`}
+<button class="btn" style="margin-top:12px">Einsatz speichern</button></form><div id="depMsg" style="margin-top:14px"></div></div>
+<div class="card span4"><h3>Hinweis</h3><p class="muted">Bitte nur QM-relevante Angaben dokumentieren. Keine Patientennamen, Geburtsdaten, Adressen oder Diagnosen, durch die Personen identifizierbar werden.</p></div></div>`;
+}
+function questionInput(q,i){
+if(q.type==="text") return `<div class="question"><div class="qtitle">${i+1}. ${esc(q.text)}</div><textarea data-q="${q.id}" data-type="text" placeholder="Freitext..."></textarea></div>`;
+return `<div class="question"><div class="qtitle">${i+1}. ${esc(q.text)}</div><div class="choices">
+${["Ja","Teilweise","Nein"].map(v=>`<button type="button" class="choice" data-q="${q.id}" data-val="${v}">${v}</button>`).join("")}</div></div>`;
+}
+function statsView(){
+const rows=filteredDeployments();
+const ans=state.answers.filter(a=>rows.some(d=>d.id===a.deployment_id));
+const triple=ans.filter(a=>["Ja","Teilweise","Nein"].includes(a.value));
+const counts={Ja:0,Teilweise:0,Nein:0}; triple.forEach(a=>counts[a.value]++);
+const total=triple.length||1;
+const pct=(n,d)=>d?Math.round(n/d*100):0;
+const overallTotal=counts.Ja+counts.Teilweise+counts.Nein;
+const overview=`<div class="card" style="margin-top:16px;border-left:5px solid #155eef"><h2>Schnellübersicht</h2><div class="grid">
+<div class="span4"><div class="row between"><b>Ja</b><b>${pct(counts.Ja,overallTotal)}%</b></div><div class="progress"><div style="width:${pct(counts.Ja,overallTotal)}%;background:#155eef"></div></div><div class="muted" style="margin-top:5px">${counts.Ja} von ${overallTotal}</div></div>
+<div class="span4"><div class="row between"><b>Teilweise</b><b>${pct(counts.Teilweise,overallTotal)}%</b></div><div class="progress"><div style="width:${pct(counts.Teilweise,overallTotal)}%;background:#d97706"></div></div><div class="muted" style="margin-top:5px">${counts.Teilweise} von ${overallTotal}</div></div>
+<div class="span4"><div class="row between"><b>Nein</b><b>${pct(counts.Nein,overallTotal)}%</b></div><div class="progress"><div style="width:${pct(counts.Nein,overallTotal)}%;background:#c62828"></div></div><div class="muted" style="margin-top:5px">${counts.Nein} von ${overallTotal}</div></div>
+</div></div>`;
+const questionStats=state.questions.map(q=>{
+  const qa=ans.filter(a=>a.question_id===q.id);
+  const c={Ja:0,Teilweise:0,Nein:0};
+  qa.forEach(a=>{if(c[a.value]!==undefined)c[a.value]++});
+  const den=c.Ja+c.Teilweise+c.Nein;
+  const distribution=den?`<div style="min-width:180px"><div class="progress" title="Ja ${pct(c.Ja,den)}% | Teilweise ${pct(c.Teilweise,den)}% | Nein ${pct(c.Nein,den)}%"><div style="width:${pct(c.Ja,den)}%;background:#155eef;display:inline-block"></div></div><div class="muted" style="font-size:11px;margin-top:4px">Ja ${pct(c.Ja,den)}% · Teilweise ${pct(c.Teilweise,den)}% · Nein ${pct(c.Nein,den)}%</div></div>`:'<span class="muted">Noch keine Bewertung</span>';
+  return `<tr><td>${esc(q.text)}</td><td>${qa.length}</td><td>${c.Ja} (${pct(c.Ja,den)}%)</td><td>${c.Teilweise} (${pct(c.Teilweise,den)}%)</td><td>${c.Nein} (${pct(c.Nein,den)}%)</td><td>${distribution}</td></tr>`;
+}).join("");
+const questionCards=state.questions.map((q,idx)=>{
+  const qa=ans.filter(a=>a.question_id===q.id);
+  const c={Ja:0,Teilweise:0,Nein:0}; qa.forEach(a=>{if(c[a.value]!==undefined)c[a.value]++});
+  const den=c.Ja+c.Teilweise+c.Nein;
+  const py=pct(c.Ja,den), pp=pct(c.Teilweise,den), pn=pct(c.Nein,den);
+  return `<div class="qstatcard"><div class="row between"><div><b>Frage ${idx+1}</b><div style="margin-top:4px">${esc(q.text)}</div></div><span class="pill">${qa.length} Antworten</span></div>
+  ${den?`<div class="stackbar" style="margin-top:13px"><span class="yes" style="width:${py}%"></span><span class="partial" style="width:${pp}%"></span><span class="no" style="width:${pn}%"></span></div>
+  <div class="legend" style="margin-top:8px"><span><i style="background:#155eef"></i>Ja ${py}% (${c.Ja})</span><span><i style="background:#d97706"></i>Teilweise ${pp}% (${c.Teilweise})</span><span><i style="background:#c62828"></i>Nein ${pn}% (${c.Nein})</span></div>`
+  :`<div class="muted" style="margin-top:12px">Noch keine bewertbare Antwort vorhanden.</div>`}
+  </div>`;
+}).join("");
+const questionSection=`<h2 style="margin-top:20px">Auswertung je QM-Frage</h2>
+<p class="muted">Jede Frage wird separat ausgewertet. Die Prozentwerte beziehen sich nur auf Ja/Teilweise/Nein-Antworten dieser Frage.</p>
+<div style="display:grid;gap:10px">${questionCards||'<div class="muted">Noch keine Fragen vorhanden.</div>'}</div>`;
+let adminBreak="";
+if(state.profile?.role==="admin"){
+const byYear=[1,2,3].map(y=>{const ds=rows.filter(d=>{const p=state.profiles.find(x=>x.id===d.user_id);return p?.year===y});return `<tr><td>${y}. Lehrjahr</td><td>${ds.length}</td><td>${ds.length?Math.round(ds.length/Math.max(1,rows.length)*100):0}%</td></tr>`}).join("");
+adminBreak=`<h2 style="margin-top:20px">Nach Lehrjahr</h2><div class="tablewrap"><table><thead><tr><th>Lehrjahr</th><th>Einsätze</th><th>Anteil am Filter</th></tr></thead><tbody>${byYear}</tbody></table></div>`;
+}
+return `${nav()}<div class="grid"><div class="card span12"><div class="row between"><div><h1>Statistik</h1><p class="muted">${state.profile?.role==="admin"?"Gesamtübersicht mit Filtern":"Deine persönliche Auswertung"}</p></div><div class="row"><button class="btn secondary" id="exportCsv">CSV exportieren</button><button class="btn ghost" id="print">Drucken / PDF</button></div></div>
+${state.profile?.role==="admin"?filterBar():""}<div class="kpi" style="margin-top:15px"><div class="stat"><b>${rows.length}</b><span>Einsätze</span></div><div class="stat"><b>${counts.Ja}</b><span>Ja</span></div><div class="stat"><b>${counts.Teilweise}</b><span>Teilweise</span></div><div class="stat"><b>${counts.Nein}</b><span>Nein</span></div></div>
+${overview}
+${adminBreak}
+${questionSection}
+<h2 style="margin-top:20px">Einsätze</h2>${deploymentTable(rows)}</div></div>`;
+}
+function filterBar(){
+return `<div class="grid" style="margin-top:12px"><div class="field span4"><label>Azubi</label><select id="fUser"><option value="">Alle</option>${state.profiles.filter(p=>p.role==="azubi").map(p=>`<option value="${p.id}">${esc(p.full_name)}</option>`).join("")}</select></div><div class="field span4"><label>Lehrjahr</label><select id="fYear"><option value="">Alle</option><option>1</option><option>2</option><option>3</option></select></div><div class="field span4"><label>Stichwort enthält</label><input id="fKeyword" placeholder="z. B. Atemnot"></div><div class="field span6"><label>Von</label><input type="date" id="fFrom"></div><div class="field span6"><label>Bis</label><input type="date" id="fTo"></div><div class="span12"><button class="btn secondary" id="applyFilters">Filter anwenden</button></div></div>`;
+}
+function filteredDeployments(){
+let rows=[...state.deployments];
+if(state.profile?.role==="admin"){
+const uid=document.getElementById("fUser")?.value||"";
+const year=document.getElementById("fYear")?.value||"";
+const kw=(document.getElementById("fKeyword")?.value||"").toLowerCase();
+const from=document.getElementById("fFrom")?.value||"", to=document.getElementById("fTo")?.value||"";
+if(uid)rows=rows.filter(d=>d.user_id===uid);
+if(year)rows=rows.filter(d=>String(state.profiles.find(p=>p.id===d.user_id)?.year||"")===year);
+if(kw)rows=rows.filter(d=>String(d.keyword).toLowerCase().includes(kw));
+if(from)rows=rows.filter(d=>d.date>=from); if(to)rows=rows.filter(d=>d.date<=to);
+}
+return rows;
+}
+function azubis(){
+const az=state.profiles.filter(p=>p.role==="azubi");
+return `${nav()}<div class="grid"><div class="card span6"><h1>Azubi hinzufügen</h1><p class="muted">Die Person erhält eine Einladung. Sie registriert sich anschließend mit genau dieser E-Mail-Adresse.</p>
+<form id="inviteForm"><div class="field"><label>Name</label><input id="invName" required></div><div class="field"><label>E-Mail</label><input id="invEmail" type="email" required></div><div class="field"><label>Lehrjahr</label><select id="invYear"><option>1</option><option>2</option><option>3</option></select></div><button class="btn">Einladung anlegen</button></form><div id="invMsg" style="margin-top:12px"></div></div>
+<div class="card span6"><h2>Einladungen</h2>${state.invites.length?`<div class="tablewrap"><table><thead><tr><th>Name</th><th>Jahr</th><th>Status</th></tr></thead><tbody>${state.invites.map(i=>`<tr><td>${esc(i.full_name)}<br><span class="muted">${esc(i.email)}</span></td><td>${i.year}</td><td>${i.used_at?'<span class="pill">registriert</span>':'<span class="pill off">offen</span>'}</td></tr>`).join("")}</tbody></table></div>`:`<div class="muted">Noch keine Einladungen.</div>`}</div>
+<div class="card span12"><h2>Azubis</h2><div class="tablewrap"><table><thead><tr><th>Name</th><th>E-Mail</th><th>Lehrjahr</th><th>Aktiv</th><th>Aktion</th></tr></thead><tbody>${az.map(p=>`<tr><td>${esc(p.full_name)}</td><td>${esc(p.id===state.user.id?"(du)":(state.invites.find(i=>i.full_name===p.full_name)?.email||""))}</td><td><select class="userYear" data-id="${p.id}"><option ${p.year==1?"selected":""}>1</option><option ${p.year==2?"selected":""}>2</option><option ${p.year==3?"selected":""}>3</option></select></td><td>${p.active?"Ja":"Nein"}</td><td><button class="btn small ghost toggleUser" data-id="${p.id}" data-active="${p.active}">${p.active?"Deaktivieren":"Aktivieren"}</button></td></tr>`).join("")}</tbody></table></div></div></div>`;
+}
+function fragen(){
+const qs=state.questions;
+return `${nav()}<div class="grid"><div class="card span6"><h1>QM-Frage hinzufügen</h1><form id="questionForm"><div class="field"><label>Frage</label><textarea id="qText" required></textarea></div><div class="field"><label>Antworttyp</label><select id="qType"><option value="triple">Ja / Teilweise / Nein</option><option value="text">Freitext</option></select></div><button class="btn">Frage anlegen</button></form><div id="qMsg" style="margin-top:12px"></div></div>
+<div class="card span6"><h2>Fragenverwaltung</h2><p class="muted">Zum Ändern einer bestehenden Frage legst du eine neue Version an und deaktivierst die alte. So bleiben historische Antworten unverändert.</p>${qs.map(q=>`<div class="question"><div class="row between"><div><b>${esc(q.text)}</b><div class="muted">Version ${q.version} · ${q.type==="text"?"Freitext":"Ja/Teilweise/Nein"}</div></div><button class="btn small ${q.active?"danger":"secondary"} toggleQ" data-id="${q.id}" data-active="${q.active}">${q.active?"Deaktivieren":"Aktivieren"}</button></div></div>`).join("")}</div></div>`;
+}
+function render(){
+if(!state.user){app.innerHTML=authView();wireAuth();return}
+let content=state.tab==="home"?dashboard():state.tab==="einsatz"?einsatz():state.tab==="statistik"?statsView():state.tab==="azubis"?azubis():fragen();
+app.innerHTML=shell(content);wireCommon();
+}
+function wireAuth(){
+document.querySelectorAll("[data-auth]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-auth]").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById("auth-login").classList.toggle("hidden",b.dataset.auth!=="login");document.getElementById("auth-signup").classList.toggle("hidden",b.dataset.auth!=="signup")});
+document.getElementById("loginForm").onsubmit=async e=>{e.preventDefault();const m=document.getElementById("authMsg");m.innerHTML="";const {error}=await sb.auth.signInWithPassword({email:loginEmail.value,password:loginPw.value});if(error)m.innerHTML=msg(error.message,"err")};
+document.getElementById("signupForm").onsubmit=async e=>{e.preventDefault();const m=document.getElementById("authMsg");m.innerHTML="";const {data,error}=await sb.auth.signUp({email:suEmail.value,password:suPw.value,options:{data:{full_name:suName.value,year:suYear.value},emailRedirectTo:location.origin}});if(error)m.innerHTML=msg(error.message,"err");else if(!data.session)m.innerHTML=msg("Konto angelegt. Bitte ggf. deine E-Mail bestätigen und dich danach anmelden.","ok");else m.innerHTML=msg("Konto angelegt.","ok")};
+}
+function wireCommon(){
+document.getElementById("logout")?.addEventListener("click",()=>sb.auth.signOut());
+document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;render()});
+document.getElementById("claimAdmin")?.addEventListener("click",async()=>{const {data,error}=await sb.rpc("claim_first_admin");if(error)alert(error.message);else if(data){await loadData();state.tab="home";render();alert("Dieses Konto ist jetzt Admin.");}else alert("Es ist bereits ein Admin eingerichtet.");});
+document.querySelectorAll(".choice").forEach(b=>b.onclick=()=>{document.querySelectorAll(`.choice[data-q="${b.dataset.q}"]`).forEach(x=>x.classList.remove("selected"));b.classList.add("selected")});
+document.getElementById("deploymentForm")?.addEventListener("submit",saveDeployment);
+document.getElementById("inviteForm")?.addEventListener("submit",saveInvite);
+document.getElementById("questionForm")?.addEventListener("submit",saveQuestion);
+document.querySelectorAll(".toggleUser").forEach(b=>b.onclick=async()=>{await sb.from("profiles").update({active:b.dataset.active!=="true"}).eq("id",b.dataset.id);await loadData();render()});
+document.querySelectorAll(".userYear").forEach(s=>s.onchange=async()=>{await sb.from("profiles").update({year:Number(s.value)}).eq("id",s.dataset.id);await loadData();render()});
+document.querySelectorAll(".toggleQ").forEach(b=>b.onclick=async()=>{await sb.from("questions").update({active:b.dataset.active!=="true"}).eq("id",b.dataset.id);await loadData();render()});
+document.querySelectorAll(".viewDeployment").forEach(b=>b.onclick=()=>showDeployment(b.dataset.id));
+document.querySelectorAll(".deleteDeployment").forEach(b=>b.onclick=async()=>{
+  if(!confirm("Diesen Einsatz wirklich löschen? Die zugehörigen QM-Antworten werden ebenfalls entfernt.")) return;
+  const id=b.dataset.id;
+  const ar=await sb.from("answers").delete().eq("deployment_id",id);
+  if(ar.error){alert(ar.error.message);return}
+  const dr=await sb.from("deployments").delete().eq("id",id);
+  if(dr.error){alert(dr.error.message);return}
+  await loadData(); render();
+});
+document.getElementById("exportCsv")?.addEventListener("click",exportCsv);
+document.getElementById("print")?.addEventListener("click",()=>window.print());
+document.getElementById("applyFilters")?.addEventListener("click",()=>render());
+}
+async function saveDeployment(e){
+e.preventDefault();const m=document.getElementById("depMsg");m.innerHTML="";
+const {data:d,error}=await sb.from("deployments").insert({user_id:state.user.id,date:depDate.value,keyword:depKeyword.value.trim(),alarm_time:depTime.value}).select().single();
+if(error){m.innerHTML=msg(error.message,"err");return}
+const active=state.questions.filter(q=>q.active);const vals=[];
+for(const q of active){
+let value="";
+if(q.type==="text")value=document.querySelector(`[data-q="${q.id}"][data-type="text"]`)?.value||"";
+else value=document.querySelector(`.choice.selected[data-q="${q.id}"]`)?.dataset.val||"";
+vals.push({deployment_id:d.id,question_id:q.id,value,question_text_snapshot:q.text});
+}
+if(vals.length){const r=await sb.from("answers").insert(vals);if(r.error){m.innerHTML=msg(r.error.message,"err");return}}
+await loadData();state.tab="home";render();
+}
+async function saveInvite(e){
+e.preventDefault();const m=document.getElementById("invMsg");m.innerHTML="";
+const {error}=await sb.from("trainee_invites").insert({email:invEmail.value.trim().toLowerCase(),full_name:invName.value.trim(),year:Number(invYear.value),created_by:state.user.id});
+m.innerHTML=error?msg(error.message,"err"):msg("Einladung angelegt. Der Azubi registriert sich mit dieser E-Mail-Adresse.","ok");if(!error){await loadData();setTimeout(render,500)}
+}
+async function saveQuestion(e){
+e.preventDefault();const m=document.getElementById("qMsg");m.innerHTML="";
+const maxV=Math.max(0,...state.questions.filter(q=>q.text===qText.value.trim()).map(q=>q.version||1));
+const {error}=await sb.from("questions").insert({text:qText.value.trim(),type:qType.value,active:true,version:maxV+1});
+m.innerHTML=error?msg(error.message,"err"):msg("Frage angelegt.","ok");if(!error){await loadData();setTimeout(render,500)}
+}
+function exportCsv(){
+const rows=filteredDeployments();const headers=["Datum","Alarmzeit","Einsatzstichwort","Azubi","Lehrjahr","Frage","Antwort"];
+const out=[headers.map(csvCell).join(",")];
+rows.forEach(d=>{const p=state.profiles.find(x=>x.id===d.user_id)||state.profile;const aa=state.answers.filter(a=>a.deployment_id===d.id);if(!aa.length)out.push([fmtDate(d.date),fmtTime(d.alarm_time),d.keyword,p?.full_name||"",p?.year||"","",""].map(csvCell).join(","));else aa.forEach(a=>out.push([fmtDate(d.date),fmtTime(d.alarm_time),d.keyword,p?.full_name||"",p?.year||"",a.question_text_snapshot||state.questions.find(q=>q.id===a.question_id)?.text||"",a.value].map(csvCell).join(",")))});download("qm-azubi-export.csv",out.join("\\n"),"text/csv;charset=utf-8")}
+boot();
+</script>
+</body></html>
