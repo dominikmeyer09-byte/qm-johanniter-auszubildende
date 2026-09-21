@@ -33,7 +33,14 @@ footer{padding:30px 0;color:#98a2b3;font-size:12px}
 <script>
 const SUPABASE_URL = "https://sorljyxgnzcncasxfuyo.supabase.co";
 const SUPABASE_KEY = "sb_publishable_upSLewUf2l1w4rcWhk7llg_Ebp4JJb5";
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    storage: window.sessionStorage,
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+});
 const app = document.getElementById("app");
 let state = {session:null,user:null,profile:null,questions:[],deployments:[],answers:[],profiles:[],invites:[],tab:"home",loading:false};
 
