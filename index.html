@@ -56,14 +56,20 @@ function download(name, content, mime="text/plain"){const a=document.createEleme
 function csvCell(v){return `"${String(v??"").replaceAll('"','""')}"`}
 
 async function boot(){
-  if(window.location.hash.includes("type=recovery") || new URLSearchParams(window.location.search).get("type")==="recovery") authMode="reset";
+  const params=new URLSearchParams(window.location.search);
+  const hash=new URLSearchParams(window.location.hash.replace(/^#/,""));
+  if(params.get("code")){
+    const {error}=await sb.auth.exchangeCodeForSession(params.get("code"));
+    if(!error){ history.replaceState({}, document.title, location.pathname); }
+  }
+  if(window.location.hash.includes("type=recovery") || params.get("type")==="recovery" || hash.get("type")==="recovery") authMode="reset";
   const {data:{session}}=await sb.auth.getSession();
   state.session=session; state.user=session?.user||null;
   if(state.user && authMode!=="reset") await loadData();
   render();
   sb.auth.onAuthStateChange(async (event,s)=>{
     state.session=s; state.user=s?.user||null;
-    if(event==="PASSWORD_RECOVERY"){ authMode="reset"; render(); return; }
+    if(event==="PASSWORD_RECOVERY"){ authMode="reset"; state.session=s; state.user=s?.user||null; render(); return; }
     if(event==="SIGNED_OUT"){ authMode="login"; state.profile=null; render(); return; }
     if(state.user) await loadData();
     render();
@@ -260,13 +266,24 @@ if(authMode==="forgot"){
   const form=document.createElement("div");
   form.innerHTML=`<h2>Passwort zurücksetzen</h2><p class="muted">Gib deine E-Mail-Adresse ein. Du erhältst einen Link zum Erstellen eines neuen Passworts.</p><div class="field"><label>E-Mail</label><input id="forgotEmail" type="email" required></div><button class="btn" id="sendReset" style="width:100%">Link senden</button><button type="button" class="linkbtn" id="backLogin">Zurück zur Anmeldung</button>`;
   box.parentElement.insertBefore(form,box);
-  document.getElementById("sendReset").onclick=async()=>{const email=document.getElementById("forgotEmail").value.trim();if(!email)return;const m=document.getElementById("authMsg");const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin});m.innerHTML=error?msg(error.message,"err"):msg("Wenn ein Konto mit dieser E-Mail-Adresse existiert, wurde ein Link zum Zurücksetzen versendet.","ok")};
+  document.getElementById("sendReset").onclick=async()=>{const email=document.getElementById("forgotEmail").value.trim();if(!email)return;const m=document.getElementById("authMsg");const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin + location.pathname});m.innerHTML=error?msg(error.message,"err"):msg("Wenn ein Konto mit dieser E-Mail-Adresse existiert, wurde ein Link zum Zurücksetzen versendet.","ok")};
   document.getElementById("backLogin").onclick=()=>{authMode="login";render()};
   return;
 }
 document.getElementById("loginForm")?.addEventListener("submit",async e=>{e.preventDefault();const m=document.getElementById("authMsg");m.innerHTML="";const {error}=await sb.auth.signInWithPassword({email:loginEmail.value,password:loginPw.value});if(error)m.innerHTML=msg(error.message,"err")});
 document.getElementById("signupForm")?.addEventListener("submit",async e=>{e.preventDefault();const m=document.getElementById("authMsg");m.innerHTML="";if(signupPw.value!==signupPw2.value){m.innerHTML=msg("Die beiden Passwörter stimmen nicht überein.","err");return}const {data,error}=await sb.auth.signUp({email:signupEmail.value.trim().toLowerCase(),password:signupPw.value,options:{data:{full_name:signupName.value.trim(),year:Number(signupYear.value)},emailRedirectTo:location.origin}});if(error){m.innerHTML=msg(error.message,"err");return}m.innerHTML=msg(data.session?"Konto erstellt. Du wirst angemeldet.":"Konto erstellt. Bitte bestätige deine E-Mail-Adresse über den zugesandten Link.","ok")});
-document.getElementById("resetForm")?.addEventListener("submit",async e=>{e.preventDefault();const m=document.getElementById("authMsg");m.innerHTML="";if(resetPw.value!==resetPw2.value){m.innerHTML=msg("Die beiden Passwörter stimmen nicht überein.","err");return}const {error}=await sb.auth.updateUser({password:resetPw.value});if(error){m.innerHTML=msg(error.message,"err");return}await sb.auth.signOut();authMode="login";render();document.getElementById("authMsg").innerHTML=msg("Passwort erfolgreich geändert. Bitte mit dem neuen Passwort anmelden.","ok")});
+document.getElementById("resetForm")?.addEventListener("submit",async e=>{
+  e.preventDefault();
+  const m=document.getElementById("authMsg");m.innerHTML="";
+  if(resetPw.value!==resetPw2.value){m.innerHTML=msg("Die beiden Passwörter stimmen nicht überein.","err");return}
+  if(resetPw.value.length<6){m.innerHTML=msg("Das neue Passwort muss mindestens 6 Zeichen lang sein.","err");return}
+  const {data,error}=await sb.auth.updateUser({password:resetPw.value});
+  if(error){m.innerHTML=msg("Das Passwort konnte nicht geändert werden: "+error.message,"err");return}
+  await sb.auth.signOut();
+  authMode="login";
+  render();
+  document.getElementById("authMsg").innerHTML=msg("Passwort erfolgreich geändert. Bitte mit dem neuen Passwort anmelden.","ok");
+});
 }
 function wireCommon(){
 document.getElementById("logout")?.addEventListener("click",()=>sb.auth.signOut());
