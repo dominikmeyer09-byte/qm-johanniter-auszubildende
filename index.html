@@ -13,7 +13,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:
 .wrap{max-width:1180px;margin:0 auto;padding:20px}.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow)}.span12{grid-column:span 12}.span8{grid-column:span 8}.span6{grid-column:span 6}.span4{grid-column:span 4}
 h1,h2,h3{margin:0 0 12px}h1{font-size:26px}h2{font-size:20px}h3{font-size:16px}.muted{color:var(--muted)}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.between{justify-content:space-between}
 .btn{border:0;border-radius:10px;padding:10px 14px;font-weight:700;background:var(--primary);color:#fff}.btn:hover{background:var(--primary2)}.btn.secondary{background:#edf3ff;color:#174ea6}.btn.ghost{background:#fff;color:var(--text);border:1px solid var(--line)}.btn.danger{background:#fff0f0;color:var(--danger);border:1px solid #ffd0d0}.accent{color:var(--red)}.btn.small{padding:7px 10px;font-size:13px}
-label{display:block;font-weight:700;font-size:13px;margin-bottom:6px}.field{margin-bottom:14px}input,select,textarea{width:100%;padding:10px 11px;border:1px solid #cfd6e2;border-radius:10px;background:#fff;color:var(--text)}textarea{min-height:90px;resize:vertical}
+label{display:block;font-weight:700;font-size:13px;margin-bottom:6px}.field{margin-bottom:14px}.pwrow{display:flex;gap:8px}.pwrow input{flex:1}.linkbtn{margin-top:12px;background:none;border:0;color:#00509e;text-decoration:underline;padding:0;font-weight:700;cursor:pointer}input,select,textarea{width:100%;padding:10px 11px;border:1px solid #cfd6e2;border-radius:10px;background:#fff;color:var(--text)}textarea{min-height:90px;resize:vertical}
 .auth{min-height:100vh;display:grid;place-items:center;padding:20px}.authbox{max-width:470px;width:100%}.logo{font-size:28px;font-weight:900;color:#00509e;margin-bottom:8px}.tabs{display:flex;border-bottom:1px solid var(--line);margin-bottom:18px}.tab{flex:1;padding:10px;background:none;border:0;font-weight:800;color:var(--muted);border-bottom:3px solid transparent}.tab.active{color:var(--primary);border-bottom-color:var(--primary)}
 .alert{padding:11px 13px;border-radius:10px;background:#eef5ff;color:#174ea6;margin-bottom:14px}.alert.err{background:#fff0f0;color:#9f1d1d}.alert.ok{background:#eaf8f2;color:#087f5b}
 nav{display:flex;gap:8px;overflow:auto;margin-bottom:18px}.navbtn{white-space:nowrap;border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 12px;font-weight:700;color:#475467}.navbtn.active{background:#00509e;color:#fff;border-color:#00509e}
@@ -43,6 +43,9 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
 });
 const app = document.getElementById("app");
 let state = {session:null,user:null,profile:null,questions:[],deployments:[],answers:[],profiles:[],invites:[],tab:"home",loading:false};
+let authMode = "login";
+const isManager = () => ["admin","praxisanleiter"].includes(state.profile?.role);
+const roleLabel = role => role === "praxisanleiter" ? "Praxisanleiter" : role === "admin" ? "Administrator" : "Azubi";
 
 const esc = s => String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
 const fmtDate = d => d ? new Date(d+"T00:00:00").toLocaleDateString("de-DE") : "";
@@ -53,11 +56,18 @@ function download(name, content, mime="text/plain"){const a=document.createEleme
 function csvCell(v){return `"${String(v??"").replaceAll('"','""')}"`}
 
 async function boot(){
+  if(window.location.hash.includes("type=recovery") || new URLSearchParams(window.location.search).get("type")==="recovery") authMode="reset";
   const {data:{session}}=await sb.auth.getSession();
   state.session=session; state.user=session?.user||null;
-  if(state.user) await loadData();
+  if(state.user && authMode!=="reset") await loadData();
   render();
-  sb.auth.onAuthStateChange(async (_e,s)=>{state.session=s;state.user=s?.user||null;if(state.user) await loadData();render()});
+  sb.auth.onAuthStateChange(async (event,s)=>{
+    state.session=s; state.user=s?.user||null;
+    if(event==="PASSWORD_RECOVERY"){ authMode="reset"; render(); return; }
+    if(event==="SIGNED_OUT"){ authMode="login"; state.profile=null; render(); return; }
+    if(state.user) await loadData();
+    render();
+  });
 }
 async function loadData(){
   const p=await sb.from("profiles").select("*").eq("id",state.user.id).maybeSingle();
@@ -68,29 +78,34 @@ async function loadData(){
   state.deployments=d.data||[];
   const a=await sb.from("answers").select("*");
   state.answers=a.data||[];
-  if(state.profile?.role==="admin"){
+  if(isManager()){
     const pr=await sb.from("profiles").select("*").order("year").order("full_name");
     state.profiles=pr.data||[];
     const inv=await sb.from("trainee_invites").select("*").order("created_at",{ascending:false});
     state.invites=inv.data||[];
   } else {state.profiles=[];state.invites=[]}
 }
+function pwField(id,label,opts={}){const type=opts.type||"password";return `<div class="field"><label>${label}</label><div class="pwrow"><input id="${id}" type="${type}" ${opts.minlength?`minlength="${opts.minlength}"`:""} ${opts.required!==false?"required":""}><button type="button" class="btn ghost pwToggle" data-target="${id}" aria-label="Passwort anzeigen">Anzeigen</button></div></div>`}
 function authView(){
 return `<div class="auth"><div class="authbox">
 <div class="logo">QM Johanniter Auszubildende</div><div class="muted" style="margin-bottom:18px">Digitale Einsatz- und QM-Dokumentation für die NotSan-Ausbildung.</div>
 <div class="card">
-<div class="tabs"><button class="tab active" data-auth="login">Anmelden</button><button class="tab" data-auth="signup">Konto erstellen</button></div>
-<div id="auth-login"><form id="loginForm">
+<div class="tabs"><button class="tab ${authMode==="login"?"active":""}" data-auth="login">Anmelden</button><button class="tab ${authMode==="signup"?"active":""}" data-auth="signup">Konto erstellen</button></div>
+<div id="auth-login" class="${authMode==="login"?"":"hidden"}"><form id="loginForm">
 <div class="field"><label>E-Mail</label><input id="loginEmail" type="email" required></div>
-<div class="field"><label>Passwort</label><input id="loginPw" type="password" required></div>
-<button class="btn" style="width:100%">Anmelden</button></form></div>
-<div id="auth-signup" class="hidden"><form id="signupForm">
+${pwField("loginPw","Passwort")}
+<button class="btn" style="width:100%">Anmelden</button></form><button type="button" class="linkbtn" id="forgotPw">Passwort vergessen?</button></div>
+<div id="auth-signup" class="${authMode==="signup"?"":"hidden"}"><form id="signupForm">
 <div class="field"><label>Name</label><input id="suName" required></div>
 <div class="field"><label>E-Mail</label><input id="suEmail" type="email" required></div>
 <div class="field"><label>Lehrjahr</label><select id="suYear"><option value="1">1. Lehrjahr</option><option value="2">2. Lehrjahr</option><option value="3">3. Lehrjahr</option></select></div>
-<div class="field"><label>Passwort (mind. 6 Zeichen)</label><input id="suPw" type="password" minlength="6" required></div>
+${pwField("suPw","Passwort (mind. 6 Zeichen)",{minlength:6})}
 <button class="btn" style="width:100%">Konto erstellen</button>
 </form><div class="muted" style="font-size:12px;margin-top:10px">Wenn dein Supabase-Projekt eine E-Mail-Bestätigung verlangt, musst du diese zuerst bestätigen.</div></div>
+<div id="auth-reset" class="${authMode==="reset"?"":"hidden"}"><h2>Neues Passwort erstellen</h2><p class="muted">Vergib hier ein neues Passwort für dein Konto.</p><form id="resetForm">
+${pwField("resetPw","Neues Passwort (mind. 6 Zeichen)",{minlength:6})}
+${pwField("resetPw2","Neues Passwort wiederholen",{minlength:6})}
+<button class="btn" style="width:100%">Passwort speichern</button></form></div>
 <div id="authMsg" style="margin-top:14px"></div>
 </div></div></div>`;
 }
@@ -99,7 +114,7 @@ return `<div class="top"><div class="topin"><div><div class="brand">QM Johannite
 <div class="wrap">${content}<footer>QM Johanniter Auszubildende · Keine Patientennamen oder anderen identifizierenden Gesundheitsdaten eintragen.</footer></div>`;
 }
 function nav(){
-const tabs=state.profile?.role==="admin"?["home","einsatz","statistik","azubis","fragen"]:["home","einsatz","statistik"];
+const tabs=isManager()?["home","einsatz","statistik","azubis","fragen"]:["home","einsatz","statistik"];
 const labels={home:"Dashboard",einsatz:"Neuer Einsatz",statistik:"Statistik",azubis:"Azubis",fragen:"QM-Fragen"};
 return `<nav><div class="brandmini"><span class="brandmark">J</span><span>QM Johanniter Auszubildende</span></div><div class="navtabs">${tabs.map(t=>`<button class="navbtn ${state.tab===t?"active":""}" data-tab="${t}">${labels[t]}</button>`).join("")}</div></nav>`;
 }
@@ -110,7 +125,7 @@ const target=50, pct=Math.min(100,Math.round(mine/target*100));
 let setup="";
 if(state.profile?.role==="azubi") setup=`<div class="card span12"><h3>Ersteinrichtung</h3><p class="muted">Wenn noch kein Admin eingerichtet wurde, kannst du dein Konto einmalig als ersten Admin freischalten.</p><button class="btn secondary" id="claimAdmin">Als ersten Admin freischalten</button></div>`;
 return `${nav()}<div class="grid">
-<div class="card span12"><div class="row between"><div><h1>Hallo ${esc((state.profile?.full_name||"").split(" ")[0])} 👋</h1><div class="muted">${state.profile?.role==="admin"?"Administrator / Praxisanleiter":"Azubi · "+state.profile?.year+". Lehrjahr"}</div></div></div></div>
+<div class="card span12"><div class="row between"><div><h1>Hallo ${esc((state.profile?.full_name||"").split(" ")[0])} 👋</h1><div class="muted">${roleLabel(state.profile?.role)}${state.profile?.role==="azubi"?" · "+state.profile?.year+". Lehrjahr":""}</div></div></div></div>
 ${setup}
 <div class="card span12"><div class="kpi"><div class="stat"><b>${mine}</b><span>Einsätze dokumentiert</span></div><div class="stat"><b>${activeQ}</b><span>aktive QM-Fragen</span></div><div class="stat"><b>${answered}</b><span>Antworten gespeichert</span></div><div class="stat"><b>${pct}%</b><span>bis 50 Einsätze (freiwilliges Ziel)</span></div></div><div style="margin-top:14px"><div class="progress"><div style="width:${pct}%"></div></div></div></div>
 <div class="card span8"><h2>Letzte Einsätze</h2>${deploymentTable(state.deployments.slice(0,8))}</div>
@@ -128,7 +143,7 @@ function showDeployment(id){
  const aa=state.answers.filter(a=>String(a.deployment_id)===String(id));
  const body=aa.length?aa.map((a,i)=>`<div class="question"><div class="qtitle">${i+1}. ${esc(a.question_text_snapshot||state.questions.find(q=>q.id===a.question_id)?.text||"QM-Frage")}</div><div class="answerText">${a.value?`<b>${esc(a.value)}</b>`:`<span class="muted">Keine Antwort eingetragen</span>`}</div></div>`).join(""):`<div class="muted">Für diesen Einsatz sind keine Antworten gespeichert.</div>`;
  const modal=document.createElement("div"); modal.className="modal"; modal.id="deploymentModal";
- modal.innerHTML=`<div class="modalbox"><div class="row between"><div><h2>Einsatzdetails</h2><div class="muted">${fmtDate(d.date)} · ${fmtTime(d.alarm_time)} · ${esc(d.keyword)}</div>${state.profile?.role==="admin"?`<div class="muted">Azubi: ${esc(p?.full_name||"")} · ${p?.year||""}. Lehrjahr</div>`:""}</div><button class="btn ghost" id="closeDeployment">Schließen</button></div><div style="margin-top:16px">${body}</div></div>`;
+ modal.innerHTML=`<div class="modalbox"><div class="row between"><div><h2>Einsatzdetails</h2><div class="muted">${fmtDate(d.date)} · ${fmtTime(d.alarm_time)} · ${esc(d.keyword)}</div>${isManager()?`<div class="muted">Azubi: ${esc(p?.full_name||"")} · ${p?.year||""}. Lehrjahr</div>`:""}</div><button class="btn ghost" id="closeDeployment">Schließen</button></div><div style="margin-top:16px">${body}</div></div>`;
  document.body.appendChild(modal);
  document.getElementById("closeDeployment").onclick=()=>modal.remove();
  modal.onclick=e=>{if(e.target===modal)modal.remove()};
@@ -186,12 +201,12 @@ const questionSection=`<h2 style="margin-top:20px">Auswertung je QM-Frage</h2>
 <p class="muted">Jede Frage wird separat ausgewertet. Die Prozentwerte beziehen sich nur auf Ja/Teilweise/Nein-Antworten dieser Frage.</p>
 <div style="display:grid;gap:10px">${questionCards||'<div class="muted">Noch keine Fragen vorhanden.</div>'}</div>`;
 let adminBreak="";
-if(state.profile?.role==="admin"){
+if(isManager()){
 const byYear=[1,2,3].map(y=>{const ds=rows.filter(d=>{const p=state.profiles.find(x=>x.id===d.user_id);return p?.year===y});return `<tr><td>${y}. Lehrjahr</td><td>${ds.length}</td><td>${ds.length?Math.round(ds.length/Math.max(1,rows.length)*100):0}%</td></tr>`}).join("");
 adminBreak=`<h2 style="margin-top:20px">Nach Lehrjahr</h2><div class="tablewrap"><table><thead><tr><th>Lehrjahr</th><th>Einsätze</th><th>Anteil am Filter</th></tr></thead><tbody>${byYear}</tbody></table></div>`;
 }
-return `${nav()}<div class="grid"><div class="card span12"><div class="row between"><div><h1>Statistik</h1><p class="muted">${state.profile?.role==="admin"?"Gesamtübersicht mit Filtern":"Deine persönliche Auswertung"}</p></div><div class="row"><button class="btn secondary" id="exportCsv">CSV exportieren</button><button class="btn ghost" id="print">Drucken / PDF</button></div></div>
-${state.profile?.role==="admin"?filterBar():""}<div class="kpi" style="margin-top:15px"><div class="stat"><b>${rows.length}</b><span>Einsätze</span></div><div class="stat"><b>${counts.Ja}</b><span>Ja</span></div><div class="stat"><b>${counts.Teilweise}</b><span>Teilweise</span></div><div class="stat"><b>${counts.Nein}</b><span>Nein</span></div></div>
+return `${nav()}<div class="grid"><div class="card span12"><div class="row between"><div><h1>Statistik</h1><p class="muted">${isManager()?"Gesamtübersicht mit Filtern":"Deine persönliche Auswertung"}</p></div><div class="row"><button class="btn secondary" id="exportCsv">CSV exportieren</button><button class="btn ghost" id="print">Drucken / PDF</button></div></div>
+${isManager()?filterBar():""}<div class="kpi" style="margin-top:15px"><div class="stat"><b>${rows.length}</b><span>Einsätze</span></div><div class="stat"><b>${counts.Ja}</b><span>Ja</span></div><div class="stat"><b>${counts.Teilweise}</b><span>Teilweise</span></div><div class="stat"><b>${counts.Nein}</b><span>Nein</span></div></div>
 ${overview}
 ${adminBreak}
 ${questionSection}
@@ -202,7 +217,7 @@ return `<div class="grid" style="margin-top:12px"><div class="field span4"><labe
 }
 function filteredDeployments(){
 let rows=[...state.deployments];
-if(state.profile?.role==="admin"){
+if(isManager()){
 const uid=document.getElementById("fUser")?.value||"";
 const year=document.getElementById("fYear")?.value||"";
 const kw=(document.getElementById("fKeyword")?.value||"").toLowerCase();
@@ -216,10 +231,12 @@ return rows;
 }
 function azubis(){
 const az=state.profiles.filter(p=>p.role==="azubi");
-return `${nav()}<div class="grid"><div class="card span6"><h1>Azubi hinzufügen</h1><p class="muted">Die Person erhält eine Einladung. Sie registriert sich anschließend mit genau dieser E-Mail-Adresse.</p>
-<form id="inviteForm"><div class="field"><label>Name</label><input id="invName" required></div><div class="field"><label>E-Mail</label><input id="invEmail" type="email" required></div><div class="field"><label>Lehrjahr</label><select id="invYear"><option>1</option><option>2</option><option>3</option></select></div><button class="btn">Einladung anlegen</button></form><div id="invMsg" style="margin-top:12px"></div></div>
-<div class="card span6"><h2>Einladungen</h2>${state.invites.length?`<div class="tablewrap"><table><thead><tr><th>Name</th><th>Jahr</th><th>Status</th></tr></thead><tbody>${state.invites.map(i=>`<tr><td>${esc(i.full_name)}<br><span class="muted">${esc(i.email)}</span></td><td>${i.year}</td><td>${i.used_at?'<span class="pill">registriert</span>':'<span class="pill off">offen</span>'}</td></tr>`).join("")}</tbody></table></div>`:`<div class="muted">Noch keine Einladungen.</div>`}</div>
-<div class="card span12"><h2>Azubis</h2><div class="tablewrap"><table><thead><tr><th>Name</th><th>E-Mail</th><th>Lehrjahr</th><th>Aktiv</th><th>Aktion</th></tr></thead><tbody>${az.map(p=>`<tr><td>${esc(p.full_name)}</td><td>${esc(p.id===state.user.id?"(du)":(state.invites.find(i=>i.full_name===p.full_name)?.email||""))}</td><td><select class="userYear" data-id="${p.id}"><option ${p.year==1?"selected":""}>1</option><option ${p.year==2?"selected":""}>2</option><option ${p.year==3?"selected":""}>3</option></select></td><td>${p.active?"Ja":"Nein"}</td><td><button class="btn small ghost toggleUser" data-id="${p.id}" data-active="${p.active}">${p.active?"Deaktivieren":"Aktivieren"}</button></td></tr>`).join("")}</tbody></table></div></div></div>`;
+const pas=state.profiles.filter(p=>p.role==="praxisanleiter");
+return `${nav()}<div class="grid"><div class="card span6"><h1>Person hinzufügen</h1><p class="muted">Azubis und Praxisanleiter werden über eine Einladung angelegt. Die Registrierung erfolgt anschließend mit genau dieser E-Mail-Adresse.</p>
+<form id="inviteForm"><div class="field"><label>Rolle</label><select id="invRole"><option value="azubi">Azubi</option><option value="praxisanleiter">Praxisanleiter</option></select></div><div class="field"><label>Name</label><input id="invName" required></div><div class="field"><label>E-Mail</label><input id="invEmail" type="email" required></div><div class="field" id="invYearWrap"><label>Lehrjahr</label><select id="invYear"><option value="1">1. Lehrjahr</option><option value="2">2. Lehrjahr</option><option value="3">3. Lehrjahr</option></select></div><button class="btn" id="inviteSubmit">Einladung anlegen</button></form><div id="invMsg" style="margin-top:12px"></div></div>
+<div class="card span6"><h2>Einladungen</h2>${state.invites.length?`<div class="tablewrap"><table><thead><tr><th>Name</th><th>Rolle</th><th>Jahr</th><th>Status</th></tr></thead><tbody>${state.invites.map(i=>`<tr><td>${esc(i.full_name)}<br><span class="muted">${esc(i.email)}</span></td><td>${esc(roleLabel(i.role))}</td><td>${i.role==="azubi"?(i.year+". Lehrjahr"):"—"}</td><td>${i.used_at?'<span class="pill">registriert</span>':'<span class="pill off">offen</span>'}</td></tr>`).join("")}</tbody></table></div>`:`<div class="muted">Noch keine Einladungen.</div>`}</div>
+<div class="card span12"><h2>Azubis</h2><div class="tablewrap"><table><thead><tr><th>Name</th><th>Lehrjahr</th><th>Aktiv</th><th>Aktion</th></tr></thead><tbody>${az.map(p=>`<tr><td>${esc(p.full_name)}</td><td><select class="userYear" data-id="${p.id}"><option ${p.year==1?"selected":""}>1</option><option ${p.year==2?"selected":""}>2</option><option ${p.year==3?"selected":""}>3</option></select></td><td>${p.active?"Ja":"Nein"}</td><td><button class="btn small ghost toggleUser" data-id="${p.id}" data-active="${p.active}">${p.active?"Deaktivieren":"Aktivieren"}</button></td></tr>`).join("")}</tbody></table></div></div>
+<div class="card span12"><h2>Praxisanleiter</h2>${pas.length?`<div class="tablewrap"><table><thead><tr><th>Name</th><th>Status</th><th>Aktion</th></tr></thead><tbody>${pas.map(p=>`<tr><td>${esc(p.full_name)}</td><td>${p.active?"Aktiv":"Deaktiviert"}</td><td><button class="btn small ghost toggleUser" data-id="${p.id}" data-active="${p.active}">${p.active?"Deaktivieren":"Aktivieren"}</button></td></tr>`).join("")}</tbody></table></div>`:`<div class="muted">Noch keine Praxisanleiter angelegt.</div>`}</div></div>`;
 }
 function fragen(){
 const qs=state.questions;
@@ -232,9 +249,24 @@ let content=state.tab==="home"?dashboard():state.tab==="einsatz"?einsatz():state
 app.innerHTML=shell(content);wireCommon();
 }
 function wireAuth(){
-document.querySelectorAll("[data-auth]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-auth]").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById("auth-login").classList.toggle("hidden",b.dataset.auth!=="login");document.getElementById("auth-signup").classList.toggle("hidden",b.dataset.auth!=="signup")});
-document.getElementById("loginForm").onsubmit=async e=>{e.preventDefault();const m=document.getElementById("authMsg");m.innerHTML="";const {error}=await sb.auth.signInWithPassword({email:loginEmail.value,password:loginPw.value});if(error)m.innerHTML=msg(error.message,"err")};
-document.getElementById("signupForm").onsubmit=async e=>{e.preventDefault();const m=document.getElementById("authMsg");m.innerHTML="";const {data,error}=await sb.auth.signUp({email:suEmail.value,password:suPw.value,options:{data:{full_name:suName.value,year:suYear.value},emailRedirectTo:location.origin}});if(error)m.innerHTML=msg(error.message,"err");else if(!data.session)m.innerHTML=msg("Konto angelegt. Bitte ggf. deine E-Mail bestätigen und dich danach anmelden.","ok");else m.innerHTML=msg("Konto angelegt.","ok")};
+document.querySelectorAll("[data-auth]").forEach(b=>b.onclick=()=>{authMode=b.dataset.auth;render()});
+document.querySelectorAll(".pwToggle").forEach(b=>b.onclick=()=>{const el=document.getElementById(b.dataset.target);if(!el)return;const show=el.type==="password";el.type=show?"text":"password";b.textContent=show?"Verbergen":"Anzeigen"});
+document.getElementById("forgotPw")?.addEventListener("click",()=>{authMode="forgot";render();document.getElementById("authMsg").innerHTML=""});
+if(authMode==="forgot"){
+  document.getElementById("auth-login")?.classList.add("hidden");
+  document.getElementById("auth-signup")?.classList.add("hidden");
+  document.getElementById("auth-reset")?.classList.add("hidden");
+  const box=document.querySelector("#authMsg");
+  const form=document.createElement("div");
+  form.innerHTML=`<h2>Passwort zurücksetzen</h2><p class="muted">Gib deine E-Mail-Adresse ein. Du erhältst einen Link zum Erstellen eines neuen Passworts.</p><div class="field"><label>E-Mail</label><input id="forgotEmail" type="email" required></div><button class="btn" id="sendReset" style="width:100%">Link senden</button><button type="button" class="linkbtn" id="backLogin">Zurück zur Anmeldung</button>`;
+  box.parentElement.insertBefore(form,box); 
+  document.getElementById("sendReset").onclick=async()=>{const email=document.getElementById("forgotEmail").value.trim();if(!email)return;const m=document.getElementById("authMsg");const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin});m.innerHTML=error?msg(error.message,"err"):msg("Wenn ein Konto mit dieser E-Mail-Adresse existiert, wurde ein Link zum Zurücksetzen versendet.","ok")};
+  document.getElementById("backLogin").onclick=()=>{authMode="login";render()};
+  return;
+}
+document.getElementById("loginForm")?.addEventListener("submit",async e=>{e.preventDefault();const m=document.getElementById("authMsg");m.innerHTML="";const {error}=await sb.auth.signInWithPassword({email:loginEmail.value,password:loginPw.value});if(error)m.innerHTML=msg(error.message,"err")});
+document.getElementById("signupForm")?.addEventListener("submit",async e=>{e.preventDefault();const m=document.getElementById("authMsg");m.innerHTML="";const {data,error}=await sb.auth.signUp({email:suEmail.value,password:suPw.value,options:{data:{full_name:suName.value,year:suYear.value},emailRedirectTo:location.origin}});if(error)m.innerHTML=msg(error.message,"err");else if(!data.session)m.innerHTML=msg("Konto angelegt. Bitte ggf. deine E-Mail bestätigen und dich danach anmelden.","ok");else m.innerHTML=msg("Konto angelegt.","ok")});
+document.getElementById("resetForm")?.addEventListener("submit",async e=>{e.preventDefault();const m=document.getElementById("authMsg");m.innerHTML="";if(resetPw.value!==resetPw2.value){m.innerHTML=msg("Die beiden Passwörter stimmen nicht überein.","err");return}const {error}=await sb.auth.updateUser({password:resetPw.value});if(error){m.innerHTML=msg(error.message,"err");return}await sb.auth.signOut();authMode="login";render();document.getElementById("authMsg").innerHTML=msg("Passwort erfolgreich geändert. Bitte mit dem neuen Passwort anmelden.","ok")});
 }
 function wireCommon(){
 document.getElementById("logout")?.addEventListener("click",()=>sb.auth.signOut());
@@ -243,6 +275,7 @@ document.getElementById("claimAdmin")?.addEventListener("click",async()=>{const 
 document.querySelectorAll(".choice").forEach(b=>b.onclick=()=>{document.querySelectorAll(`.choice[data-q="${b.dataset.q}"]`).forEach(x=>x.classList.remove("selected"));b.classList.add("selected")});
 document.getElementById("deploymentForm")?.addEventListener("submit",saveDeployment);
 document.getElementById("inviteForm")?.addEventListener("submit",saveInvite);
+document.getElementById("invRole")?.addEventListener("change",()=>{document.getElementById("invYearWrap")?.classList.toggle("hidden",document.getElementById("invRole").value!=="azubi")});
 document.getElementById("questionForm")?.addEventListener("submit",saveQuestion);
 document.querySelectorAll(".toggleUser").forEach(b=>b.onclick=async()=>{await sb.from("profiles").update({active:b.dataset.active!=="true"}).eq("id",b.dataset.id);await loadData();render()});
 document.querySelectorAll(".userYear").forEach(s=>s.onchange=async()=>{await sb.from("profiles").update({year:Number(s.value)}).eq("id",s.dataset.id);await loadData();render()});
@@ -277,8 +310,9 @@ await loadData();state.tab="home";render();
 }
 async function saveInvite(e){
 e.preventDefault();const m=document.getElementById("invMsg");m.innerHTML="";
-const {error}=await sb.from("trainee_invites").insert({email:invEmail.value.trim().toLowerCase(),full_name:invName.value.trim(),year:Number(invYear.value),created_by:state.user.id});
-m.innerHTML=error?msg(error.message,"err"):msg("Einladung angelegt. Der Azubi registriert sich mit dieser E-Mail-Adresse.","ok");if(!error){await loadData();setTimeout(render,500)}
+const role=invRole.value;const year=role==="azubi"?Number(invYear.value):null;
+const {error}=await sb.from("trainee_invites").insert({email:invEmail.value.trim().toLowerCase(),full_name:invName.value.trim(),year,role,created_by:state.user.id});
+m.innerHTML=error?msg(error.message,"err"):msg(`${role==="praxisanleiter"?"Praxisanleiter":"Azubi"}-Einladung angelegt. Die Person registriert sich mit dieser E-Mail-Adresse.`,"ok");if(!error){await loadData();setTimeout(render,500)}
 }
 async function saveQuestion(e){
 e.preventDefault();const m=document.getElementById("qMsg");m.innerHTML="";
