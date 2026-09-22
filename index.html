@@ -90,18 +90,18 @@ function authView(){
 return `<div class="auth"><div class="authbox">
 <div class="logo">QM Johanniter Auszubildende</div><div class="muted" style="margin-bottom:18px">Digitale Einsatz- und QM-Dokumentation für die NotSan-Ausbildung.</div>
 <div class="card">
-<div class="tabs"><button class="tab ${authMode==="login"?"active":""}" data-auth="login">Anmelden</button><button class="tab ${authMode==="signup"?"active":""}" data-auth="signup">Konto erstellen</button></div>
+<div class="tabs"><button type="button" class="tab ${authMode==="login"||authMode==="forgot"||authMode==="reset"?"active":""}" id="tabLogin">Anmelden</button><button type="button" class="tab ${authMode==="signup"?"active":""}" id="tabSignup">Registrieren</button></div>
 <div id="auth-login" class="${authMode==="login"?"":"hidden"}"><form id="loginForm">
 <div class="field"><label>E-Mail</label><input id="loginEmail" type="email" required></div>
 ${pwField("loginPw","Passwort")}
 <button class="btn" style="width:100%">Anmelden</button></form><button type="button" class="linkbtn" id="forgotPw">Passwort vergessen?</button></div>
 <div id="auth-signup" class="${authMode==="signup"?"":"hidden"}"><form id="signupForm">
-<div class="field"><label>Name</label><input id="suName" required></div>
-<div class="field"><label>E-Mail</label><input id="suEmail" type="email" required></div>
-<div class="field"><label>Lehrjahr</label><select id="suYear"><option value="1">1. Lehrjahr</option><option value="2">2. Lehrjahr</option><option value="3">3. Lehrjahr</option></select></div>
-${pwField("suPw","Passwort (mind. 6 Zeichen)",{minlength:6})}
-<button class="btn" style="width:100%">Konto erstellen</button>
-</form><div class="muted" style="font-size:12px;margin-top:10px">Wenn dein Supabase-Projekt eine E-Mail-Bestätigung verlangt, musst du diese zuerst bestätigen.</div></div>
+<div class="field"><label>Name</label><input id="signupName" required></div>
+<div class="field"><label>E-Mail</label><input id="signupEmail" type="email" required></div>
+<div class="field"><label>Lehrjahr</label><select id="signupYear"><option value="1">1. Lehrjahr</option><option value="2">2. Lehrjahr</option><option value="3">3. Lehrjahr</option></select></div>
+${pwField("signupPw","Passwort (mind. 6 Zeichen)",{minlength:6})}
+${pwField("signupPw2","Passwort wiederholen",{minlength:6})}
+<button class="btn" style="width:100%">Konto erstellen</button></form><p class="muted" style="font-size:12px;margin-top:12px">Falls deine E-Mail von einem Admin als Praxisanleiter eingeladen wurde, wird dein Konto automatisch als Praxisanleiter angelegt.</p></div>
 <div id="auth-reset" class="${authMode==="reset"?"":"hidden"}"><h2>Neues Passwort erstellen</h2><p class="muted">Vergib hier ein neues Passwort für dein Konto.</p><form id="resetForm">
 ${pwField("resetPw","Neues Passwort (mind. 6 Zeichen)",{minlength:6})}
 ${pwField("resetPw2","Neues Passwort wiederholen",{minlength:6})}
@@ -123,7 +123,6 @@ const mine=state.deployments.length, answered=state.answers.length;
 const activeQ=state.questions.filter(q=>q.active).length;
 const target=50, pct=Math.min(100,Math.round(mine/target*100));
 let setup="";
-if(state.profile?.role==="azubi") setup=`<div class="card span12"><h3>Ersteinrichtung</h3><p class="muted">Wenn noch kein Admin eingerichtet wurde, kannst du dein Konto einmalig als ersten Admin freischalten.</p><button class="btn secondary" id="claimAdmin">Als ersten Admin freischalten</button></div>`;
 return `${nav()}<div class="grid">
 <div class="card span12"><div class="row between"><div><h1>Hallo ${esc((state.profile?.full_name||"").split(" ")[0])} 👋</h1><div class="muted">${roleLabel(state.profile?.role)}${state.profile?.role==="azubi"?" · "+state.profile?.year+". Lehrjahr":""}</div></div></div></div>
 ${setup}
@@ -249,7 +248,8 @@ let content=state.tab==="home"?dashboard():state.tab==="einsatz"?einsatz():state
 app.innerHTML=shell(content);wireCommon();
 }
 function wireAuth(){
-document.querySelectorAll("[data-auth]").forEach(b=>b.onclick=()=>{authMode=b.dataset.auth;render()});
+document.getElementById("tabLogin")?.addEventListener("click",()=>{authMode="login";render()});
+document.getElementById("tabSignup")?.addEventListener("click",()=>{authMode="signup";render()});
 document.querySelectorAll(".pwToggle").forEach(b=>b.onclick=()=>{const el=document.getElementById(b.dataset.target);if(!el)return;const show=el.type==="password";el.type=show?"text":"password";b.textContent=show?"Verbergen":"Anzeigen"});
 document.getElementById("forgotPw")?.addEventListener("click",()=>{authMode="forgot";render();document.getElementById("authMsg").innerHTML=""});
 if(authMode==="forgot"){
@@ -259,19 +259,18 @@ if(authMode==="forgot"){
   const box=document.querySelector("#authMsg");
   const form=document.createElement("div");
   form.innerHTML=`<h2>Passwort zurücksetzen</h2><p class="muted">Gib deine E-Mail-Adresse ein. Du erhältst einen Link zum Erstellen eines neuen Passworts.</p><div class="field"><label>E-Mail</label><input id="forgotEmail" type="email" required></div><button class="btn" id="sendReset" style="width:100%">Link senden</button><button type="button" class="linkbtn" id="backLogin">Zurück zur Anmeldung</button>`;
-  box.parentElement.insertBefore(form,box); 
+  box.parentElement.insertBefore(form,box);
   document.getElementById("sendReset").onclick=async()=>{const email=document.getElementById("forgotEmail").value.trim();if(!email)return;const m=document.getElementById("authMsg");const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin});m.innerHTML=error?msg(error.message,"err"):msg("Wenn ein Konto mit dieser E-Mail-Adresse existiert, wurde ein Link zum Zurücksetzen versendet.","ok")};
   document.getElementById("backLogin").onclick=()=>{authMode="login";render()};
   return;
 }
 document.getElementById("loginForm")?.addEventListener("submit",async e=>{e.preventDefault();const m=document.getElementById("authMsg");m.innerHTML="";const {error}=await sb.auth.signInWithPassword({email:loginEmail.value,password:loginPw.value});if(error)m.innerHTML=msg(error.message,"err")});
-document.getElementById("signupForm")?.addEventListener("submit",async e=>{e.preventDefault();const m=document.getElementById("authMsg");m.innerHTML="";const {data,error}=await sb.auth.signUp({email:suEmail.value,password:suPw.value,options:{data:{full_name:suName.value,year:suYear.value},emailRedirectTo:location.origin}});if(error)m.innerHTML=msg(error.message,"err");else if(!data.session)m.innerHTML=msg("Konto angelegt. Bitte ggf. deine E-Mail bestätigen und dich danach anmelden.","ok");else m.innerHTML=msg("Konto angelegt.","ok")});
+document.getElementById("signupForm")?.addEventListener("submit",async e=>{e.preventDefault();const m=document.getElementById("authMsg");m.innerHTML="";if(signupPw.value!==signupPw2.value){m.innerHTML=msg("Die beiden Passwörter stimmen nicht überein.","err");return}const {data,error}=await sb.auth.signUp({email:signupEmail.value.trim().toLowerCase(),password:signupPw.value,options:{data:{full_name:signupName.value.trim(),year:Number(signupYear.value)},emailRedirectTo:location.origin}});if(error){m.innerHTML=msg(error.message,"err");return}m.innerHTML=msg(data.session?"Konto erstellt. Du wirst angemeldet.":"Konto erstellt. Bitte bestätige deine E-Mail-Adresse über den zugesandten Link.","ok")});
 document.getElementById("resetForm")?.addEventListener("submit",async e=>{e.preventDefault();const m=document.getElementById("authMsg");m.innerHTML="";if(resetPw.value!==resetPw2.value){m.innerHTML=msg("Die beiden Passwörter stimmen nicht überein.","err");return}const {error}=await sb.auth.updateUser({password:resetPw.value});if(error){m.innerHTML=msg(error.message,"err");return}await sb.auth.signOut();authMode="login";render();document.getElementById("authMsg").innerHTML=msg("Passwort erfolgreich geändert. Bitte mit dem neuen Passwort anmelden.","ok")});
 }
 function wireCommon(){
 document.getElementById("logout")?.addEventListener("click",()=>sb.auth.signOut());
 document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;render()});
-document.getElementById("claimAdmin")?.addEventListener("click",async()=>{const {data,error}=await sb.rpc("claim_first_admin");if(error)alert(error.message);else if(data){await loadData();state.tab="home";render();alert("Dieses Konto ist jetzt Admin.");}else alert("Es ist bereits ein Admin eingerichtet.");});
 document.querySelectorAll(".choice").forEach(b=>b.onclick=()=>{document.querySelectorAll(`.choice[data-q="${b.dataset.q}"]`).forEach(x=>x.classList.remove("selected"));b.classList.add("selected")});
 document.getElementById("deploymentForm")?.addEventListener("submit",saveDeployment);
 document.getElementById("inviteForm")?.addEventListener("submit",saveInvite);
